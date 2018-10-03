@@ -1,4 +1,4 @@
-/* Week 5
+/* Week 5 Assignment 2
  *
  * This exercise is intended to help you practice with importing data 
  * and effectively manipulating data structures (arrays, objects) for the practical purpose of data discovery.
