@@ -9,28 +9,30 @@ console.log('Assignment 3');
  * Question 2: control structures 
  */
 {
-	//2.1 
-	console.group("Exercise 2.1")
-	for(let index = 10; index > 0; index+=1){
-		console.log(index);
-	}
+	//2.1: reverse log numbers 10 to 1
+	console.groupCollapsed('Question 2.1');
+	for(let i = 0; i < 10; i ++){
+		console.log(10 - i);
+	}	
 	console.groupEnd();
 
-	//2.2
-	/* YOUR CODE HERE*/
-	for(let index = 0; index < 501; index+=1){
-		//only log index if index is multiple of 100
-		if(index % 100 === 0){
-			console.log(index);
-		} 
+	//2.2: log every multiple of 100 from 0 to 500
+	console.groupCollapsed('Question 2.2');
+	for(let i = 0; i <= 500; i++){
+		if(i%100 === 0){
+			console.log(i);
+		}
 	}
+	console.groupEnd();
 
 	//2.3
 	const arr = [89, 23, 88, 54, 90, 0, 10];
 	//Log out the content of this array using a for loop
+	console.groupCollapsed('Question 2.3');
 	for(let i = 0; i < arr.length; i++){
-		console.log(arr[i])
+		console.log(arr[i]);
 	}
+	console.groupEnd();
 }
 
 /*
@@ -76,6 +78,5 @@ console.log('Assignment 3');
 	});
 
 	computeAvgTenure(instructors)
-
 }
 
