@@ -33,12 +33,16 @@ arr_num.forEach(function(d, i){
 
 /* For arr_obj, print out each element */
 arr_obj.forEach(function(d, i){
-	/* YOUR CODE HERE */
+	console.log(d);
 });
 
 /* A slight twist: for arr_obj, print out ONLY the .value property */
 /* YOUR CODE HERE */
-
+let sum = 0;
+arr_obj.forEach(function(d, i){
+	sum += d.value;
+});
+console.log('Total sum of values in arr_obj is ' + sum);
 
 /* Bonus: can you use arr_obj.forEach to add up ALL OF THE VALUES? */
 
@@ -65,6 +69,13 @@ const arr_obj_half = arr_obj.map(function(d){
 
 //Can you transform arr_obj into JUST an array of the values?
 /* YOUR CODE HERE */
+const arr_obj_values = arr_obj.map(function(d){
+	return d.value
+});
+
+console.log(arr_obj);
+console.log(arr_obj_values);
+
 
 console.groupEnd();
 
