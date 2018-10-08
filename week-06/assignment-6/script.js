@@ -20,6 +20,6 @@ function parse(d){
 		permit_type:d.permit_type,
 		permit_issuance_date:new Date(d.permit_issuance_date),
 		square_footage:+d.square_footage,
-		cost_per_sqft: +d.cost_estimate / +d.square_footage
+		cost_per_sqft: +d.square_footage > 0?(+d.cost_estimate / +d.square_footage):0
 	}
 }
