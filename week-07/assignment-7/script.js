@@ -55,22 +55,22 @@ data.then(function(rows){
 	scaleSize.domain([0, costMax]);
 
 	//Plot per sqft cost vs. borough
-	perSqftChart(rows.slice(0,1000));
+	perSqftChart(rows);
 
 	//Plot cost vs. sqft
 	//costVsSqftChart(rows);
 
-	//Switch between the two plots
+	//PART 2: toggle between the two plots
 	d3.select('#cost-vs-sqft')
 		.on('click', function(){
 			d3.event.preventDefault();
-			costVsSqftChart(rows.slice(0,1000));
+			/* YOUR CODE HERE*/
 		});
 
 	d3.select('#per-sqft-vs-borough')
 		.on('click', function(){
 			d3.event.preventDefault();
-			perSqftChart(rows.slice(0,1000));
+			/* YOUR CODE HERE*/
 		})
 
 });
@@ -78,20 +78,11 @@ data.then(function(rows){
 function perSqftChart(data){
 
 	const nodes = plot.selectAll('.node')
-		.data(data) //UPDATE set
+		.data(data)
+	/*
+ 	 * Complete this function
+	 * YOUR CODE HERE*/
 
-	/*YOUR CODE HERE*/
-	const nodesEnter = nodes.enter()
-		.append('circle')
-		.attr('class', 'node'); //ENTER set
-
-	nodesEnter.merge(nodes) //ENTER + UPDATE set
-		.transition()
-		.attr('r', function(d){return scaleSize(d.cost_estimate)})
-		.style('fill','#333')
-		.style('fill-opacity', .2)
-		.attr('cx', function(d){return scaleBorough(d.borough)})
-		.attr('cy', function(d){return scalePerSqft(d.cost_per_sqft)});
 
 	//Draw axes
 	//This part is already complete, but please go through it to see if you understand it
@@ -115,19 +106,10 @@ function costVsSqftChart(data){
 
 	const nodes = plot.selectAll('.node')
 		.data(data)
-	/*YOUR CODE HERE*/
-
-	const nodesEnter = nodes.enter()
-		.append('circle')
-		.attr('class', 'node');
-
-	nodes.merge(nodesEnter)
-		.transition()
-		.attr('r', 2)
-		.style('fill','#333')
-		.style('fill-opacity', .2)
-		.attr('cx', function(d){return scaleSqft(d.square_footage)})
-		.attr('cy', function(d){return scaleCost(d.cost_estimate)});
+	/*
+ 	 * Complete this function
+	 * YOUR CODE HERE*/
+	 
 
 	//Draw axes
 	//This part is already complete, but please go through it to see if you understand it
