@@ -67,6 +67,7 @@ const arr_obj_half = arr_obj.map(function(d){
 	}
 });
 
+
 //Can you transform arr_obj into JUST an array of the values?
 /* YOUR CODE HERE */
 const arr_obj_values = arr_obj.map(function(d){
@@ -75,6 +76,14 @@ const arr_obj_values = arr_obj.map(function(d){
 
 console.log(arr_obj);
 console.log(arr_obj_values);
+
+const arr_obj_values_rounded = arr_obj_values.map(function(d){
+	return Math.round(d)
+});
+
+arr_obj_values.forEach(function(d){
+	console.log(Math.round(d));
+});
 
 
 console.groupEnd();
@@ -88,6 +97,8 @@ console.group('1.3');
 const arr_num_sorted_ascending = arr_num.sort(function(a,b){
 	return a - b;
 });
+
+console.log(arr_num_sorted_ascending);
 
 const arr_num_sorted_descending = arr_num.sort(function(a,b){
 	return b - a;
@@ -142,6 +153,9 @@ console.groupEnd();
 
 //Use d3.extent to find the min-max range in the arrays
 /* YOUR CODE HERE */
+const arr_extent = d3.extent(arr_obj, function(d){
+	return d.value;
+});
 
 
 //2.4 d3.mean
@@ -150,13 +164,32 @@ console.groupEnd();
 /* YOUR CODE HERE */
 
 
-//2.4 d3.nest
-const arr_obj_by_class = d3.nest()
-	.key(function(d){ return d.class })
-	.entries(arr_obj);
+//2.5 d3.nest
+
+console.log("****************")
+console.log(arr_obj);
+console.log("****************")
+
+
+
+const arr_obj_by_class = d3.nest() //produces a nest object
+	
+	.key(function(d){ 
+		return d.class 
+	}) //specify how to nest
+
+	.entries(arr_obj); //
 
 console.group('2.5');
-console.log(arr_obj_by_class);
+//how many individual class clusters do I have?
+console.log(arr_obj_by_class.length);
+
+//What are the keys of the clusters / nests
+arr_obj_by_class.forEach(function(cluster){
+	const average = d3.mean(cluster.values, function(d){return d.value});
+	console.log('The cluster with the class ' + cluster.key + ' has average value of ' + average )
+})
+
 console.groupEnd();
 
 

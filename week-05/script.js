@@ -24,11 +24,14 @@ function parse(d){
 //Importing data
 //d3.csv(url, parse) returns a Promise
 //use Promise.then callback to access the result of data import
-d3.csv(
+const data = d3.csv(
 		'../data/nyc_permits.csv', //url (string) 
 		parse //parse (function)
 	)
 	.then(function(data){
+
+		console.log('Data has loaded')
+		console.log(data);
 		
 		//Question 2: how many records are there? Expect a single number
 		//Also, for each record, what attributes/fields are available?
