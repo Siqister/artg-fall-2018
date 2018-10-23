@@ -8,7 +8,7 @@ const popRanking1 = [
 	{name: 'New York', population: 3437202},
 	{name: 'Chicago', population: 1698575},
 	{name: 'Philadelphia', population: 1293697},
-	{name: 'St Louis', population: 575238}
+
 ];
 
 const popRanking2 = [
@@ -37,11 +37,54 @@ const plot1 = d3.select("#chart-1")
 //button interactivity
 d3.select('#year-1900').on('click', function(){
 	d3.event.preventDefault();
-	console.log('Show year 1900');
+	drawNodes(popRanking1);
 });
 
 d3.select('#year-2000').on('click', function(){
-	console.log('Show year 2000');
+	drawNodes(popRanking2);
 });
+
+function drawNodes(data){
+
+	//UPDATE selection 
+	const cityNodesUpdate = plot1.selectAll('.node') //how many?
+		.data(data, function(d){ return d.name }); //how many 
+
+	//ENTER selection (deficit)
+	//Append the right children elements
+	const cityNodesEnter = cityNodesUpdate.enter()
+		.append('g')
+		.attr('class','node');
+
+	cityNodesEnter
+		.append('circle');
+
+	cityNodesEnter
+		.append('text');
+
+	//FOR BOTH ENTER AND UPDATE
+	//re-calculate their attributes
+	cityNodesUpdate.merge(cityNodesEnter)
+		.transition()
+		.duration(2000)
+		.attr('transform', function(d, index){
+			return `translate(${w/3*index}, ${h/2})`
+		});
+
+	cityNodesUpdate.merge(cityNodesEnter)
+		.select('circle')
+		.transition()
+		.duration(2000)
+		.attr('r', function(d){return scaleRadius(d.population)});
+
+	cityNodesUpdate.merge(cityNodesEnter)
+		.select('text')
+		.text(function(d){return d.name})
+		.attr('text-anchor', 'middle');
+
+	//EXIT selection (surplus)
+	const cityNodesExit = cityNodesUpdate.exit()
+		.remove();
+}
 
 
