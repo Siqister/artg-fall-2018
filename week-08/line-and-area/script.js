@@ -21,6 +21,7 @@ function generateDummyData(n){
 }
 
 const dummyData = generateDummyData(200);
+console.log(dummyData);
 //call the function to draw chart 1
 drawChart1(dummyData);
 
@@ -33,28 +34,32 @@ function drawChart1(lineData){
 	//Mine dummyData for max and min, and create scales to map data from domain to range
 	const extentX = d3.extent(lineData, function(d){return d.index});
 	const extentY = d3.extent(lineData, function(d){return d.value});
+	console.log(extentX)
+	console.log(extentY)
 	const scaleX = d3.scaleLinear().domain(extentX).range([0, w]);
 	const scaleY = d3.scaleLinear().domain(extentY).range([h, 0]);
 
 	//Create line generator and area generator functions
 	//These generators need to be configured such that they can access x and y coordinates from an input array
 	//Once configured, they can transform these arrays into the "d" (shape) attribute for <path> elements
-	const line = d3.line()
+	const line = d3.line() //return value is a function
 		.x(function(d){ return scaleX(d.index) })
 		.y(function(d){ return scaleY(d.value) })
 		//feel free to explore these additional parameters below by commenting / uncommenting each line
-		.curve(d3.curveBasis)
+		//.curve(d3.curveBasis)
 		//.curve(d3.curveNatural)
-		//.curve(d3.curveStep)
+		.curve(d3.curveStep)
 
 	const area = d3.area()
 		.x(function(d){ return scaleX(d.index) })
 		.y1(function(d){ return scaleY(d.value) })
 		.y0(h)
 		//feel free to explore these additional parameters below by commenting / uncommenting each line
-		.curve(d3.curveBasis)
+		//.curve(d3.curveBasis)
 		//.curve(d3.curveNatural)
-		//.curve(d3.curveStep)
+		.curve(d3.curveStep)
+
+	const lineShapeAttribute = line(lineData);
 
 	//Draw
 	const plot1 = d3.select('#chart-1')
@@ -63,12 +68,15 @@ function drawChart1(lineData){
 		.append('g')
 		.attr('transform', `translate(${margin.l}, ${margin.t})`);
 
+
+
+
 	//The line
 	//Append a single <path> element, and bind the entire array of (index, value) objects to it
 	plot1
-		.append('path')
+		.append('path') //1 x <path>
 		.attr('class', 'line')
-		.datum(lineData)
+		.datum(lineData) //joined to 1 x array
 		.attr('d', function(d){
 			return line(d)
 		})
@@ -122,26 +130,87 @@ d3.csv('../../data/nyc_permits.csv', parse)
 		
 		//THIS IS THE MAIN BODY OF THE ASSIGNMENT
 		//1.1: append <svg> and <g> to <div.#plot-2>
+		const W = d3.select('#chart-2').node().clientWidth;
+		const H = d3.select('#chart-2').node().clientHeight;
+		const w = W - margin.l - margin.r;
+		const h = H - margin.t - margin.b;
 
+		console.log(W, H);
+		console.log(w, h);
+
+		const plot2 = d3.select('#chart-2')
+			.append('svg')
+			.attr('width', W)
+			.attr('height', H)
+			.append('g')
+			.attr('class', 'plot')
+			.attr('transform', `translate(${margin.l}, ${margin.t})`);
 
 		//1.2 Data discovery
 		//What is the time range in the incoming "data" array?
-
+		const timeExtent = d3.extent(data, function(d){return d.week});
 		//What is the max and min number of permits per week in this array?
-
+		const permitExtent = d3.extent(data, function(d){return d.permits.length});
 
 		//1.3 Set up two scales
 		//scaleX is a linear time scale
-		const scaleX = d3.scaleTime() /* COMPLETE THIS LINE */
+		const scaleY = d3.scaleTime() /* COMPLETE THIS LINE */
+			.domain(timeExtent)
+			.range([h, 0]);
 		//scaleY is a linear scale
-		const scaleY = d3.scaleLinear() /* COMPLETE THIS LINE */
+		const scaleX = d3.scaleLinear() /* COMPLETE THIS LINE */
+			.domain(permitExtent)
+			.range([0, w]);
 
 		//1.4 Set up a line generator and an area generator function
 		//These generator functions will take the "data" array, 
 		//and transform it into the "d" (shape) attribute for <path> elements
+		const line = d3.line()
+			.x(function(d){ return scaleX(d.permits.length) })
+			.y(function(d){ return scaleY(d.week) })
+			.curve(d3.curveBasis);
 
+		const area = d3.area()
+			.y(function(d){ return scaleY(d.week) })
+			.x0(0)
+			.x1(function(d){ return scaleX(d.permits.length)})
+			.curve(d3.curveBasis);
 
 		//1.5 Draw the chart
+		plot2.append('path')
+			.attr('class','line')
+			.datum(data)
+			.attr('d', function(d){
+				return line(d);
+			})
+			.style('fill', 'none')
+			.style('stroke', 'black')
+			.style('stroke-width', 2)
+
+		plot2.insert('path', '.line')
+			.attr('class','area')
+			.datum(data)
+			.attr('d', function(d){
+				return area(d);
+			})
+			.style('fill', 'red')
+			.on('click', function(d){
+				alert(`There are ${d.permits.length} permits this week`);
+			})
+
+		const points = plot2.selectAll('.point')
+			.data(data)
+			.enter()
+			.append('circle')
+			.attr('cx', function(d){return scaleX(d.permits.length)})
+			.attr('cy', function(d){return scaleY(d.week)})
+			.attr('r', 5);
+
+		points.on('click', function(d){
+			alert(`There are ${d.permits.length} permits this week`);
+		});
+
+
 
 
 		//1.6 Draw axes

@@ -1,5 +1,5 @@
 //Data import and parse
-const data = d3.csv('../../data/nyc_permits.csv', parse);
+const data = d3.csv('../../data/nyc_permits.csv', parse); //JS Promise
 const m = {t:50, r:50, b:50, l:50};
 const w = d3.select('.plot').node().clientWidth - m.l - m.r;
 const h = d3.select('.plot').node().clientHeight - m.t - m.b;
@@ -11,12 +11,14 @@ const scalePerSqft = d3.scaleLog().range([h, 0]);
 const scaleBorough = d3.scaleOrdinal();
 const scaleSize = d3.scaleSqrt().range([0,30]);
 
+
 //Append <svg>
 const plot = d3.select('.plot')
 	.append('svg')
 	.attr('width', w + m.l + m.r)
 	.attr('height', h + m.t + m.b)
 	.append('g')
+	.attr('class','plot-body')
 	.attr('transform', `translate(${m.l}, ${m.t})`);
 plot.append('g')
 	.attr('class', 'axis-y');
@@ -25,6 +27,8 @@ plot.append('g')
 	.attr('transform', `translate(0, ${h})`);
 
 data.then(function(rows){
+	console.log(rows);
+
 	//Data discovery
 	//Range of cost_estimate
 	const costMin = d3.min(rows, function(d){ return d.cost_estimate });
@@ -49,40 +53,64 @@ data.then(function(rows){
 	scaleCost.domain([1, costMax]);
 	scaleSqft.domain([1, sqftMax]);
 	scalePerSqft.domain([1, perSqftMax]);
-	scaleBorough.domain(boroughs).range(d3.range(boroughs.length).map(function(d){
-		return (w-100)/(boroughs.length-1)*d + 50;
-	}));
+	scaleBorough
+		.domain(boroughs)
+		.range(d3.range(boroughs.length).map(function(d){
+			return (w-100)/(boroughs.length-1)*d + 50;
+		}));
 	scaleSize.domain([0, costMax]);
 
+console.group('Ordinal scale')
+console.log(scaleBorough.domain())
+console.log(scaleBorough.range())
+console.groupEnd();
+
+
 	//Plot per sqft cost vs. borough
-	perSqftChart(rows);
+	//perSqftChart(rows);
 
 	//Plot cost vs. sqft
-	//costVsSqftChart(rows);
+	costVsSqftChart(rows.slice(0,1000));
 
 	//PART 2: toggle between the two plots
 	d3.select('#cost-vs-sqft')
 		.on('click', function(){
 			d3.event.preventDefault();
-			/* YOUR CODE HERE*/
+			costVsSqftChart(rows.slice(0,2500));
 		});
 
 	d3.select('#per-sqft-vs-borough')
 		.on('click', function(){
 			d3.event.preventDefault();
-			/* YOUR CODE HERE*/
+			perSqftChart(rows.slice(0,1000));
 		})
 
 });
 
 function perSqftChart(data){
 
-	const nodes = plot.selectAll('.node')
-		.data(data)
+	//UPDATE selection
+	const nodes = plot.selectAll('.node') //DOM selection of 0
+		.data(data) //Data array of 1000 data points
+
 	/*
  	 * Complete this function
 	 * YOUR CODE HERE*/
+	//To make up for deficit
+	//ENTER selection
+	const nodesEnter = nodes.enter()
+		.append('circle')
+		.attr('class', 'node');
 
+	const nodesExit = nodes.exit()
+		.remove();
+
+	nodesEnter.merge(nodes)
+		.transition()
+		.attr('cx', function(d){ return scaleBorough(d.borough)})
+		.attr('cy', function(d){ return scalePerSqft(d.cost_per_sqft)})
+		.attr('r', 5)
+		.style('fill-opacity', .2);
 
 	//Draw axes
 	//This part is already complete, but please go through it to see if you understand it
@@ -104,13 +132,33 @@ function perSqftChart(data){
 
 function costVsSqftChart(data){
 
+	console.log('Draw cost vs sqft chart');
+	console.log(data);
+
 	const nodes = plot.selectAll('.node')
 		.data(data)
 	/*
  	 * Complete this function
 	 * YOUR CODE HERE*/
-	 
+	const nodesEnter = nodes.enter() //the X number of empty spaces to make up for deficit 
+		.append('circle')
+		.style('fill', 'green')
+		.attr('class', 'node') //TODO: 
 
+	//EXIT selection
+	const nodesExit = nodes.exit() //selection
+		.remove();
+
+	//Setting visual attributes for UPDATE and ENTER
+	nodes.merge(nodesEnter)
+		.transition()
+		.duration(2000)
+		.attr('cx', function(d){ return scaleSqft(d.square_footage) })
+		.attr('cy', function(d){ return scaleCost(d.cost_estimate)})
+		.style('fill', 'black')
+		.attr('r', 5)
+		.style('fill-opacity', 0.1);
+	 
 	//Draw axes
 	//This part is already complete, but please go through it to see if you understand it
 	const axisY = d3.axisLeft()
@@ -143,6 +191,6 @@ function parse(d){
 		permit_type:d.permit_type,
 		permit_issuance_date:new Date(d.permit_issuance_date),
 		square_footage:+d.square_footage,
-		cost_per_sqft: +d.square_footage > 0?(+d.cost_estimate / +d.square_footage):0
+		cost_per_sqft: +d.square_footage > 0 ? (+d.cost_estimate /+d.square_footage):0
 	}
 }
