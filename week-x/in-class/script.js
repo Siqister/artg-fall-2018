@@ -67,70 +67,6 @@ json.then(function(data){
 
 function renderCluster(rootNode, rootDOM){
 
-	const W = rootDOM.clientWidth;
-	const H = rootDOM.clientHeight;
-	const w = W - margin.l - margin.r;
-	const h = H - margin.t - margin.b;
-
-	const plot = d3.select(rootDOM)
-		.append('svg')
-		.attr('width', W)
-		.attr('height', H)
-		.append('g')
-		.attr('class','plot')
-		.attr('transform', `translate(${margin.l}, ${margin.t})`);
-
-	console.group('Cluster');
-
-	const clusterTransform = d3.cluster()
-		.size([w, h]);
-
-	const clusterData = clusterTransform(rootNode);
-	const nodesData = clusterData.descendants();
-	const linksData = clusterData.links();
-	console.log(rootNode);
-	console.log(nodesData);
-	console.log(linksData);
-
-	//Draw nodes
-	const nodes = plot.selectAll('.node')
-		.data(nodesData);
-	const nodesEnter = nodes.enter()
-		.append('g')
-		.attr('class','node')
-		.call(enableTooltip);
-	nodesEnter.append('circle');
-	nodesEnter.append('text');
-
-	nodesEnter.merge(nodes)
-		.attr('transform', function(d){
-			return `translate(${d.x}, ${d.y})`
-		})
-		.select('circle')
-		.attr('r', 4)
-		.style('fill', function(d){
-			return depthScale(d.depth);
-		});
-
-	nodesEnter.merge(nodes)
-		.filter(function(d){ return d.depth < 2})
-		.select('text')
-		.text(function(d){ return `${d.data.name}: ${d.value}`})
-		.attr('dx', 6);
-
-	//Draw links
-	const links = plot.selectAll('.link')
-		.data(linksData);
-	const linksEnter = links.enter()
-		.insert('line', '.node')
-		.attr('class', 'link');
-	linksEnter.merge(links)
-		.attr('x1', function(d){ return d.source.x })
-		.attr('x2', function(d){ return d.target.x })
-		.attr('y1', function(d){ return d.source.y })
-		.attr('y2', function(d){ return d.target.y })
-
-	console.groupEnd();
 
 }
 
@@ -262,117 +198,12 @@ function renderTree(rootNode, rootDOM, radial){
 }
 
 function renderPartition(rootNode, rootDOM){
-	const W = rootDOM.clientWidth;
-	const H = rootDOM.clientHeight;
-	const w = W - margin.l - margin.r;
-	const h = H - margin.t - margin.b;
-
-	const plot = d3.select(rootDOM)
-		.append('svg')
-		.attr('width', W)
-		.attr('height', H)
-		.append('g')
-		.attr('class','plot')
-		.attr('transform', `translate(${margin.l}, ${margin.t})`);
-
-	console.group('Partition');
-
-	const partitionTransform = d3.partition()
-		.size([w, h])
-		.padding(0);
-
-	const nodesData = partitionTransform(rootNode).descendants();
-	console.log(nodesData);
-
-	//Draw nodes
-	const nodes = plot.selectAll('.node')
-		.data(nodesData);
-	const nodesEnter = nodes.enter()
-		.append('g')
-		.attr('class','node');
-	nodesEnter.append('rect');
-	nodesEnter.append('text');
-
-	nodesEnter.merge(nodes)
-		.attr('transform', function(d){
-			return `translate(${d.x0}, ${d.y0})`
-		})
-		.select('rect')
-		.attr('width', function(d){ return d.x1 - d.x0})
-		.attr('height', function(d){ return d.y1 - d.y0})
-		.style('fill', function(d){
-			return depthScale(d.depth);
-		})
-		.style('stroke-width','1px');
-
-	nodesEnter.merge(nodes)
-		.filter(function(d){ return d.depth < 2})
-		.select('text')
-		.text(function(d){ return `${d.data.name}: ${d.value}`})
-		.attr('dx', 5)
-		.attr('dy', 15);
 
 
-	console.groupEnd();
 }
 
 function renderTreemap(rootNode, rootDOM){
-	const W = rootDOM.clientWidth;
-	const H = rootDOM.clientHeight;
-	const w = W - margin.l - margin.r;
-	const h = H - margin.t - margin.b;
-
-	const plot = d3.select(rootDOM)
-		.append('svg')
-		.attr('width', W)
-		.attr('height', H)
-		.append('g')
-		.attr('class','plot')
-		.attr('transform', `translate(${margin.l}, ${margin.t})`);
-
-	console.group('Treemap');
-
-	const treemapTransform = d3.treemap()
-		.size([w, h])
-		.padding(0)
-		.round(true);
-
-	const nodesData = treemapTransform(rootNode).descendants();
-	console.log(nodesData);
-
-	//Draw nodes
-	const nodes = plot.selectAll('.node')
-		.data(nodesData);
-	const nodesEnter = nodes.enter()
-		.append('g')
-		.attr('class','node');
-	nodesEnter.append('rect');
-	nodesEnter.append('text');
-
-	nodesEnter.merge(nodes)
-		.attr('transform', function(d){
-			return `translate(${d.x0}, ${d.y0})`
-		})
-		.select('rect')
-		.attr('width', function(d){ return d.x1 - d.x0})
-		.attr('height', function(d){ return d.y1 - d.y0})
-		.style('fill', function(d){
-			return depthScale(d.depth);
-		})
-		.style('fill-opacity', 1)
-		.style('stroke-width', function(d){
-			if(d.depth === 1) return '10px';
-			return '1px';
-		});
-
-	nodesEnter.merge(nodes)
-		.filter(function(d){ return !d.children})
-		.select('text')
-		.text(function(d){ return `${d.data.name}: ${d.value}`})
-		.attr('dx', 5)
-		.attr('dy', 15);
 
 
-	console.groupEnd();
 }
 
