@@ -4,6 +4,8 @@ const m = {t:50, r:50, b:50, l:50};
 
 data.then(function(rows){
 
+	console.log(rows);
+
 	const permitsByBorough = d3.nest()
 		.key(function(d){return d.job_type})
 		.key(function(d){return d.borough})
@@ -14,12 +16,98 @@ data.then(function(rows){
 		values:permitsByBorough
 	}, function(d){ return d.values });
 
-	const rootNodeByCost = rootNode.sum()
-	const rootNodeByCount = rootNode.count()
+	const rootNodeByCost = rootNode.sum(function(d){return d.cost_estimate});
+	//const rootNodeByCount = rootNode.count();
 
-	console.log(rootNode);
+	//Partition layout
+	const partitionDiv = d3.select('#partition').node(); //a DOM node =/= selection
+	const W = partitionDiv.clientWidth;
+	const H = partitionDiv.clientHeight;
+	const w = W - m.l - m.r;
+	const h = H - m.t - m.b;
 
+	const plot = d3.select('#partition')
+		.append('svg')
+		.attr('width', W)
+		.attr('height', H)
+		.append('g')
+		.attr('class', 'nodes')
+		.attr('transform', `translate(${m.l}, ${m.r})`);
+
+
+	const partition = d3.partition() //
+		.size([w, h]);
+
+	const dataTransformed = partition(rootNode);
+
+	draw(dataTransformed, plot);
+
+	d3.select('#cost-vs-sqft').on('click', function(){
+		rootNode.sum(function(d){return d.cost_estimate});
+		const dataTransformed = partition(rootNode);
+		draw(dataTransformed, plot);
+	})
+	d3.select('#per-sqft-vs-borough').on('click', function(){
+		rootNode.count();
+		const dataTransformed = partition(rootNode);
+		draw(dataTransformed, plot);
+	})
 })
+
+//Will be called X times
+function draw(data, plot){
+	//Draw/update DOM nodes based on data
+	//i.e. enter exit update
+
+	const rectNodes = plot.selectAll('.node')
+		.data(
+			data
+				.descendants()
+				.filter(function(d){
+					return d.depth < 3
+				})
+		); //UPDATE
+
+	//ENTER
+	const rectNodesEnter = rectNodes.enter()
+		.append('rect')
+		.attr('class', 'node');
+
+	rectNodes.merge(rectNodesEnter)
+		.transition()
+		.attr('x', function(d){return d.x0})
+		.attr('y', function(d){return d.y0})
+		.attr('width', function(d){return d.x1-d.x0})
+		.attr('height', function(d){return d.y1-d.y0})
+		.style('fill', function(d){
+			switch(d.depth){
+				case 1: return 'red';
+				case 2: return 'blue';
+				case 0: return 'green'
+			}
+		})
+		.style('stroke', 'black')
+		.style('stroke-width', '1px');
+
+	const labelNodes = plot.selectAll('text')
+		.data(
+			data
+				.descendants()
+				.filter(function(d){
+					return d.depth < 3
+				})
+		);
+
+	const labelNodesEnter = labelNodes.enter()
+		.append('text');
+
+	labelNodes.merge(labelNodesEnter)
+		.text(function(d){return d.data.key})
+		.attr('text-anchor','middle')
+		.transition()
+		.attr('x', function(d){ return (d.x0 + d.x1)/2 })
+		.attr('y', function(d){ return (d.y0 + d.y1)/2 })
+}
 
 function parse(d){
 	return {
