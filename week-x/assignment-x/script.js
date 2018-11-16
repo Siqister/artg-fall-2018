@@ -4,7 +4,20 @@ const m = {t:50, r:50, b:50, l:50};
 
 data.then(function(rows){
 
-	console.log(rows);
+	const permitsByBorough = d3.nest()
+		.key(function(d){return d.job_type})
+		.key(function(d){return d.borough})
+		.entries(rows); //this is an array
+
+	const rootNode = d3.hierarchy({
+		key:'root',
+		values:permitsByBorough
+	}, function(d){ return d.values });
+
+	const rootNodeByCost = rootNode.sum()
+	const rootNodeByCount = rootNode.count()
+
+	console.log(rootNode);
 
 })
 

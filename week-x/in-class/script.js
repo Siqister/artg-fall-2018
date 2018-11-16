@@ -4,7 +4,7 @@ console.log("Week 10: visualizing hierarchical data");
 
 //Import data using d3.json: note similarity to d3.csv
 const margin = {t:50, r:50, b:50, l:50};
-const json = d3.json('./flare.json');
+const json = d3.json('./flare.json'); //Promise
 const depthScale = d3.scaleOrdinal()
 	.domain([0,1,2,3,4])
 	.range([null, 'red', '#03afeb', 'yellow', 'green']);
@@ -55,17 +55,84 @@ json.then(function(data){
 	//Need to convert this into a d3-hierarchy object before further transformation
 	const rootNode = d3.hierarchy(data)
 		.sum(function(d){ return d.value });
-	
+
 	//After this data transformation, we can produce a few different visualizations based on hierarchical data
 	renderCluster(rootNode, document.getElementById('cluster'));
 	renderTree(rootNode, document.getElementById('tree'));
 	renderTree(rootNode, document.getElementById('tree-radial'), true);
 	renderPartition(rootNode, document.getElementById('partition'));
-	renderTreemap(rootNode, document.getElementById('treemap'));
+	//renderTreemap(rootNode, document.getElementById('treemap'));
 
 })
 
 function renderCluster(rootNode, rootDOM){
+
+	console.group('Cluster');
+
+	console.log(rootNode);
+
+	const W = rootDOM.clientWidth;
+	const H = rootDOM.clientHeight;
+	const w = W - margin.l - margin.r;
+	const h = H - margin.t - margin.b;
+
+	const plot = d3.select(rootDOM)
+		.append('svg')
+		.attr('width', W)
+		.attr('height', H)
+		.append('g')
+		.attr('transform', `translate(${margin.l}, ${margin.t})`);
+
+	const clusterTransform = d3.cluster().size([w, h]); //????
+	const dataTransformed = clusterTransform(rootNode);
+	const nodesData = dataTransformed.descendants();
+	const linksData = dataTransformed.links();
+	console.log(nodesData);
+	console.log(linksData);
+
+	const nodes = plot.selectAll('.node')
+		.data(nodesData); //UPDATE
+	const nodesEnter = nodes.enter()
+		.append('g')
+		.attr('class','node'); //ENTER
+
+	nodesEnter.append('circle');
+	nodesEnter.append('text');	
+
+	nodesEnter.merge(nodes)
+		.attr('transform', function(d){
+			return `translate(${d.x}, ${d.y})`
+		})
+
+	nodesEnter.merge(nodes)
+		.select('circle')
+		.attr('r',5)
+		.style('fill', function(d){
+			return depthScale(d.depth);
+		});
+
+	nodesEnter.merge(nodes)
+		.filter(function(d){return d.depth < 3})
+		.select('text')
+		.text(function(d){
+
+			return `${d.data.name}: ${d.value}`;
+		});
+
+	//Draw links
+	const links = plot.selectAll('.link')
+		.data(linksData);
+	const linksEnter = links.enter()
+		.insert('line', '.node')
+		.attr('class','link');
+	linksEnter.merge(links)
+		.attr('x1', function(d){ return d.source.x })
+		.attr('x2', function(d){ return d.target.x })
+		.attr('y1', function(d){ return d.source.y })
+		.attr('y2', function(d){ return d.target.y });
+
+
+	console.groupEnd();
 
 
 }
@@ -199,6 +266,78 @@ function renderTree(rootNode, rootDOM, radial){
 
 function renderPartition(rootNode, rootDOM){
 
+	const W = rootDOM.clientWidth;
+	const H = rootDOM.clientHeight;
+	const w = W - margin.l - margin.r;
+	const h = H - margin.t - margin.b;
+
+	const plot = d3.select(rootDOM)
+		.append('svg')
+		.attr('width', W)
+		.attr('height', H)
+		.append('g')
+		.attr('class','plot')
+		.attr('transform', `translate(${margin.l}, ${margin.t})`);
+
+	console.group('Partition');
+
+	const partitionTransform //this is a function !!!
+		= d3.partition().size([w, h])
+		//.padding
+
+	const dataTransformed = partitionTransform(rootNode);
+	const nodesData = dataTransformed.descendants();
+	const linksData = dataTransformed.links();
+
+	const nodes = plot.selectAll('.node')
+		.data(nodesData);
+	const nodesEnter = nodes.enter()
+		.append('g')
+		.attr('class','node')
+		.on('mouseenter', function(d){
+			console.log(d.data.name, d.value);
+
+			d3.select(this)
+				.select('rect')
+				//.transition()
+				.style('fill-opacity',1)
+		})
+		.on('mouseleave', function(d){
+			d3.select(this)
+				.select('rect')
+				//.transition()
+				.style('fill-opacity',.5)
+		})
+
+	nodesEnter.append('rect');
+	nodesEnter.append('text');
+
+	nodesEnter.merge(nodes)
+		.attr('transform', function(d){
+			return `translate(${d.x0}, ${d.y0})`;
+		});
+	nodesEnter.merge(nodes)
+		.select('rect')
+		.attr('width', function(d){ return d.x1 - d.x0 })
+		.attr('height', function(d){ return d.y1 - d.y0 })
+		.style('fill', function(d){
+			return depthScale(d.depth);
+		});
+	nodesEnter.merge(nodes)
+		.filter(function(d){ return d.depth < 2})
+		.select('text')
+		.text(function(d){
+			return `${d.data.name}: ${d.value}`
+		})
+		.attr('x', function(d){ return (d.x1-d.x0)/2})
+		.attr('y', function(d){ return (d.y1-d.y0)/2})
+		.attr('text-anchor','middle')
+
+	console.log(dataTransformed.links());
+
+
+
+	console.groupEnd();
 
 }
 
