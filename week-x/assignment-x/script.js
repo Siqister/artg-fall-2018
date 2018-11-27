@@ -65,7 +65,8 @@ function draw(data, plot){
 				.descendants()
 				.filter(function(d){
 					return d.depth < 3
-				})
+				}),
+			function(d){return d.data.key}
 		); //UPDATE
 
 	//ENTER

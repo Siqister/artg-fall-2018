@@ -36,3 +36,25 @@
 .axis .domain{
 	display:none;
 }
+
+.custom-tooltip{
+	position:absolute;
+	width:180px;
+	min-height:20px;
+	background:yellow;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

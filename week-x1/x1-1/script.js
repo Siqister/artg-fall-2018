@@ -13,9 +13,9 @@ d3.json('./countries.geojson')
 
 		console.log(data);
 	
-		renderCylindricalProjection(data, document.getElementById('chart-1'));
-		renderAzimuthalMap(data, document.getElementById('chart-2'));
-		renderConicalProjection(data, document.getElementById('chart-3'));
+		//renderCylindricalProjection(data, document.getElementById('chart-1'));
+		//renderAzimuthalMap(data, document.getElementById('chart-2'));
+		//renderConicalProjection(data, document.getElementById('chart-3'));
 		renderCollection(data, document.getElementById('chart-4'));
 
 	});
@@ -32,12 +32,38 @@ function renderCylindricalProjection(geo, dom){
 
 	//Create a projection function
 	const projection = d3.geoMercator()
-		.center(lngLatBoston)
-		.translate([w/2, h/2])
-		.precision(0)
-		.scale(200)
+		 .center(lngLatBoston)
+		 .translate([w/2, h/2])
+		// .precision(0)
+		 .scale(100)
 		//.clipAngle(45)
 
+	const xy = projection(lngLatBoston);
+	console.log(xy);
+
+	plot.append('circle')
+		.datum(projection(lngLatBoston))
+		.attr('cx', function(d){return d[0]})
+		.attr('cy', function(d){return d[1]})
+		.attr('r',10)
+
+	//Generating geo <path> element
+	const pathGenerator = d3.geoPath(projection); //
+
+	plot.append('path')
+		.datum(geo)
+		.attr('d', function(d){ return pathGenerator(d) });
+
+	//
+	const graticules = d3.geoGraticule(); //generates data for lng lat lines
+
+	plot.append('path')
+		.datum(graticules)
+		.attr('d', function(d){ return pathGenerator(d)})
+		.style('stroke','#333')
+		.style('stroke-opacity', .2)
+		.style('stroke-width','1px')
+		.style('fill','none');
 
 }
 
@@ -109,6 +135,42 @@ function renderCollection(geo, dom){
 	const plot = d3.select(dom).append('svg')
 		.attr('width', w)
 		.attr('height', h);
+
+	const projection = d3.geoMercator()
+		.translate([w/2, h/2])
+		.scale(150)
+		//.fitExtent([[0,0], [w,h]], geo);
+
+	const pathGenerator = d3.geoPath(projection);
+
+	console.log(geo.features);
+
+	plot.selectAll('path')
+		.data(geo.features, function(d){ return d.properties.ISO_A3 })
+		.enter()
+		.append('path')
+		.attr('d', pathGenerator)
+		.style('fill', function(d,i){
+			return `rgb(${i}, ${255-i}, 255)`;
+		})
+		.on('mouseenter', function(d,i){
+			d3.select(this)
+				.style('stroke','black')
+				.style('stroke-width','1px')
+		})
+		.on('mouseleave', function(){
+			d3.select(this)
+				.style('stroke','black')
+				.style('stroke-width','0px')
+		})
+		.on('click', function(){
+			//
+		})
+
+
+
+
+
 
 }
 

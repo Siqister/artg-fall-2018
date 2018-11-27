@@ -77,8 +77,68 @@ function drawChart(data, dom){
 
 function drawMap(data, dom){
 
-	//Create projection
-	const lngLatNYC = [0, 0];
+	//Create projection function
+	//center
+	//translate
+	//scale
+	const lngLatNYC = [-74.0060, 40.7128];
+
+	//build DOM
+	const w = dom.clientWidth;
+	const h = dom.clientHeight;
+
+	const plot = d3.select(dom)
+		.append('svg')
+		.attr('width',w)
+		.attr('height',h);
+
+	//Projection
+	const projection = d3.geoMercator()
+		.center(lngLatNYC)
+		.translate([w/2, h/2])
+		.scale(90000);
+
+	const nodes = plot.selectAll('.node')
+		.data(data)
+		.enter()
+		.append('circle')
+		.attr('class', 'node')
+		.attr('r', function(d){ return scaleSize(d.cost_estimate)})
+		.attr('cx', function(d){ return projection(d.lngLat)[0] })
+		.attr('cy', function(d){ return projection(d.lngLat)[1] })
+		.on('mouseenter', function(d,i){
+			//callback function
+			d3.select(this)
+				.style('opacity',1);
+
+			const tooltip = d3.select('.custom-tooltip');
+
+			tooltip
+				.select('#address')
+				.html(d.address)
+			tooltip
+				.select('#sqft')
+				.html(d.square_footage)
+			tooltip
+				.select('#permit-type')
+				.html(d.permit_type)
+		})
+		.on('mousemove', function(d){
+
+			const xy = d3.mouse(d3.select('.full-screen').node());
+
+			d3.select('.custom-tooltip')
+				.style('left', (xy[0] + 20) + 'px')
+				.style('top', (xy[1] + 20) + 'px')
+
+		})
+		.on('mouseleave', function(d){
+			//no-op
+			d3.select(this)
+				.style('opacity',null);
+		})
+
+
 
 }
 
