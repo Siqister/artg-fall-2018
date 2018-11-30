@@ -1,5 +1,35 @@
-//This example demonstrates how you might import data from different sources
+//Prep work 
+const W = d3.select('.chart').node().clientWidth;
+const H = d3.select('.chart').node().clientHeight;
+const margin = {t:32, r:16, b:64, l:64};
+const w = W - margin.l - margin.r;
+const h = H - margin.t - margin.b;
 
+const plot = d3.select('.chart')
+	.append('svg')
+		.attr('width', W)
+		.attr('height', H)
+	.append('g')
+		.attr('class','plot')
+		.attr('transform', `translate(${margin.l}, ${margin.t})`);
+
+//Global variables, including indicators of interest and force layout functions
+const INDICATOR_GDP_PER_CAP = 'GDP per capita (constant 2010 US$)';
+const INDICATOR_GDP = 'GDP (constant 2010 US$)';
+
+const scaleColor = d3.scaleOrdinal();
+const scaleX = d3.scaleOrdinal();
+
+const simulation = d3.forceSimulation();
+const forceX = d3.forceX(function(d){return d.x0});
+const forceY = d3.forceY(function(d){return d.y0});
+const forceCollision = d3.forceCollide(function(d){return d.r});
+simulation
+	.force('positionX', forceX)
+	.force('positionY', forceY)
+	.force('r', forceCollision);
+
+//Load data
 const dataPromise = d3.csv('../data/data.csv', parseData)
 .then(function(rows){ 
 	return rows.reduce(function(acc,val){return acc.concat(val)}, []); 
@@ -10,39 +40,119 @@ const geojsonPromise = d3.json('../data/countries.geojson');
 Promise.all([dataPromise, metadataPromise, geojsonPromise])
 	.then(function([data, metadata, geojson]){
 
-		//Here, all the different datasets have been imported via Promise
-		//Data -> 263 countries and entities x 21 indicators x 50 years
-		console.log(data);
+		//First, filter the data for the indicator and year that we are interested in
+		const YEAR = 2017;
+		const indicatorData = data.filter(function(d){
+				return d.year === YEAR;
+			}).filter(function(d){
+				return d.series === INDICATOR_GDP || d.series === INDICATOR_GDP_PER_CAP;
+			});
 
-		//Metadata -> 263 countries and entities
-		console.log(metadata);
+		//Nest by country, then roll up
+		const countryData = d3.nest()
+			.key(function(d){ return d.countryCode})
+			.entries(indicatorData)
+			.map(function(d){
+				d.values.forEach(function(s){
+					d[s.series] = s.value
+				});
+				return d;
+			});
 
-		//Geojson -> collection of 255 geographic features
-		console.log(geojson);
+		//Now we must augment indicatorData by providing each country with its corresponding region of the world
+		const metadataMap = d3.map(metadata, function(d){ return d.Code });
 
-		//Below are some examples of data transformation you may apply
-		//1.1 Converting metadata into a "map" or dictionary
-		const metadataMap = d3.map(metadata, function(d){return d.Code});
-		//With this "map", you can easily look up information for any country using the 3-letter code
-		console.group('Example 1.1: creating a map for lookup');
-		console.log(metadataMap.get('USA'));
-		console.groupEnd();
+		countryData.forEach(function(d){
+			const region = metadataMap.get(d.key).Region;
+			const incomeGroup = metadataMap.get(d.key)['Income Group'];
+			d.region = region;
+			d.incomeGroup = incomeGroup;
+		});
 
-		//1.2 Nesting data: what if I want to see how total population has changed for each country across 50 years?
-		console.group('Example 1.2: nesting and filtering data');
-		// 263 countries and entities x 1 indicator x 50 years = 13150 records
-		const populationIndicator = data.filter(function(d){return d.series === 'Population, total'});
-		// Nest 13150 records by countries
-		const populationByCountry = d3.nest()
-			.key(function(d){ return d.country })
-			.entries(populationIndicator);
-		console.log(populationByCountry);
-		console.groupEnd();
+		//Set up scales
+		//scaleX uses the incomeGroups as domain
+		//scaleColor uses the regions as domain
+		const incomeGroups = d3.nest()
+			.key(function(d){return d['Income Group']})
+			.entries(metadata)
+			.map(function(d){ return d.key });
+		const regions = d3.nest()
+			.key(function(d){return d.Region})
+			.entries(metadata)
+			.map(function(d){ return d.key });
 
-		//1.3 Try this out for your self: what if I need to look up the "GDP per capita (constant 2010 US$)" measure for all countries for the year 2000 only?
-		//Hint: use array.filter twice
+		scaleX.domain(incomeGroups)
+			.range(d3.range(incomeGroups.length).map(function(d,i){
+				return i * w/(incomeGroups.length - 1);
+			}));
+		scaleColor.domain(regions)
+			.range([
+				'#333', //undefined
+				'rgb(0,0,255)', //South Asia
+				'rgb(255,0,128)',
+				'rgb(0,255,50)',
+				'rgb(255,50,0)',
+				'rgb(255,128,0)',
+				'rgb(128,0,255)',
+				'rgb(0,128,128)'
+			]);
+
+		drawChart(countryData, plot);
 
 	});
+
+function drawChart(data, plot){
+
+	const maxGdpPerCap = d3.max(data, function(d){ return d[INDICATOR_GDP_PER_CAP] });
+	const scaleY = d3.scaleLog().domain([100, maxGdpPerCap]).range([h, 0]).clamp(true);
+
+	const maxGdp = d3.max(data, function(d){ return d[INDICATOR_GDP] });
+	const scaleSize = d3.scaleSqrt().domain([0, maxGdp]).range([2, 30]);
+
+	data.forEach(function(d){
+		d.x0 = scaleX(d.incomeGroup);
+		d.y0 = scaleY(d[INDICATOR_GDP_PER_CAP]);
+		d.x = scaleX(d.incomeGroup);
+		d.y = scaleY(d[INDICATOR_GDP_PER_CAP]);
+		d.r = scaleSize(d[INDICATOR_GDP]);
+	});
+
+	//Enter / exit / update
+	const nodes = plot.selectAll('.node')
+		.data(data);
+
+	const nodesEnter = nodes.enter()
+		.append('g')
+		.attr('class', 'node');
+	nodesEnter.append('circle');
+
+	nodes.merge(nodesEnter)
+		.attr('transform', function(d){ return `translate(${d.x}, ${d.y})`})
+		.select('circle')
+		.attr('r', function(d){ return scaleSize(d[INDICATOR_GDP]) })
+		.attr('fill', function(d){ return scaleColor(d.region) })
+		.style('fill-opacity', .4)
+		.style('stroke', '#333')
+		.style('stroke-width', '1.5px');
+
+	//Start / restart force simulation
+	simulation.nodes(data)
+		.on('tick', function(){
+			nodes.merge(nodesEnter)
+				.attr('transform', function(d){ return `translate(${d.x}, ${d.y})`})
+		})
+		.restart();
+
+	//axis
+	const axisY = d3.axisLeft()
+		.scale(scaleY)
+		.tickSize(-w);
+
+	plot.append('g').attr('class','axis axis-y')
+		.call(axisY);
+
+}
+
 
 function parseData(d){
 
