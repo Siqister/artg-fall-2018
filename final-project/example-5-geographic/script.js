@@ -1,5 +1,27 @@
-//This example demonstrates how you might import data from different sources
+//Prep work 
+const W = d3.select('.chart').node().clientWidth;
+const H = d3.select('.chart').node().clientHeight;
+const margin = {t:32, r:16, b:64, l:64};
+const w = W - margin.l - margin.r;
+const h = H - margin.t - margin.b;
 
+const plot = d3.select('.chart')
+	.append('svg')
+		.attr('width', W)
+		.attr('height', H)
+	.append('g')
+		.attr('class','plot')
+		.attr('transform', `translate(${margin.l}, ${margin.t})`);
+
+
+//Shared global variables, such as indicator names and geo functions
+const INDICATOR_INFANT_DEATH = 'Number of infant deaths';
+const INDICATOR_INFANT_MORTALITY_RATE = 'Mortality rate, infant (per 1,000 live births)';
+
+const projection = d3.geoMercator();
+const path = d3.geoPath();
+
+//Load data
 const dataPromise = d3.csv('../data/data.csv', parseData)
 .then(function(rows){ 
 	return rows.reduce(function(acc,val){return acc.concat(val)}, []); 
@@ -10,39 +32,102 @@ const geojsonPromise = d3.json('../data/countries.geojson');
 Promise.all([dataPromise, metadataPromise, geojsonPromise])
 	.then(function([data, metadata, geojson]){
 
-		//Here, all the different datasets have been imported via Promise
-		//Data -> 263 countries and entities x 21 indicators x 50 years
-		console.log(data);
+		//First, filter the data for the indicators and year that we are interested in
+		const YEAR = 2017;
+		const infantDeathData = data.filter(function(d){
+				return d.year === YEAR;
+			}).filter(function(d){
+				return d.series === INDICATOR_INFANT_DEATH;
+			});
+		const infantMortalityData = data.filter(function(d){
+				return d.year === YEAR;
+			}).filter(function(d){
+				return d.series === INDICATOR_INFANT_MORTALITY_RATE;
+			});
 
-		//Metadata -> 263 countries and entities
-		console.log(metadata);
+		//Next, we should roll up these indicators with the GeoJSON data
+		//The "rollup" operation will require data lookup, hence d3.map
+		const infantDeathDataMap = d3.map(infantDeathData, function(d){return d.countryCode});
+		const infantMortalityDataMap = d3.map(infantMortalityData, function(d){return d.countryCode});
+		geojson.features
+			.forEach(function(feature){
+				const infantDeath = infantDeathDataMap.get(feature.properties.ISO_A3);
+				const infantMortality = infantMortalityDataMap.get(feature.properties.ISO_A3);
 
-		//Geojson -> collection of 255 geographic features
-		console.log(geojson);
+				feature.properties[INDICATOR_INFANT_DEATH] = infantDeath?infantDeath.value:null;
+				feature.properties[INDICATOR_INFANT_MORTALITY_RATE] = infantMortality?infantMortality.value:null;
+			});
 
-		//Below are some examples of data transformation you may apply
-		//1.1 Converting metadata into a "map" or dictionary
-		const metadataMap = d3.map(metadata, function(d){return d.Code});
-		//With this "map", you can easily look up information for any country using the 3-letter code
-		console.group('Example 1.1: creating a map for lookup');
-		console.log(metadataMap.get('USA'));
-		console.groupEnd();
+		//Configure geo functions with data
+		path.projection(projection);
 
-		//1.2 Nesting data: what if I want to see how total population has changed for each country across 50 years?
-		console.group('Example 1.2: nesting and filtering data');
-		// 263 countries and entities x 1 indicator x 50 years = 13150 records
-		const populationIndicator = data.filter(function(d){return d.series === 'Population, total'});
-		// Nest 13150 records by countries
-		const populationByCountry = d3.nest()
-			.key(function(d){ return d.country })
-			.entries(populationIndicator);
-		console.log(populationByCountry);
-		console.groupEnd();
-
-		//1.3 Try this out for your self: what if I need to look up the "GDP per capita (constant 2010 US$)" measure for all countries for the year 2000 only?
-		//Hint: use array.filter twice
+		drawChoropleth(geojson, plot);
+		drawCartogram(geojson, plot);
 
 	});
+
+function drawChoropleth(geojson, selection){
+
+	//In this function we can derive a color ramp (i.e. scale) using infant mortality rate
+	const maxInfantMortality = d3.max(geojson.features, function(d){
+		return d.properties[INDICATOR_INFANT_MORTALITY_RATE];
+	});
+
+	const scaleColor = d3.scaleLinear().domain([0, maxInfantMortality]).range(['white','red']);
+
+	const nodes = selection.selectAll('.country')
+		.data(geojson.features, function(d){return d.properties.ISO_A3});
+
+	const nodesEnter = nodes.enter()
+		.append('path').attr('class','country');
+
+	nodes.merge(nodesEnter)
+		.attr('d', path)
+		.style('fill', function(d){
+			return scaleColor(d.properties[INDICATOR_INFANT_MORTALITY_RATE]);
+		});
+
+}
+
+function drawCartogram(geojson, selection){
+
+	//In this function we can derive a size scale using infant death
+	const maxInfantDeath = d3.max(geojson.features, function(d){
+		return d.properties[INDICATOR_INFANT_DEATH];
+	});
+
+	console.log(maxInfantDeath);
+
+	const scaleSize = d3.scaleSqrt().domain([0, maxInfantDeath]).range([2,60]);
+
+	const nodes = selection.selectAll('.country-rect')
+		.data(geojson.features, function(d){return d.properties.ISO_A3});
+
+	const nodesEnter = nodes.enter()
+		.append('rect').attr('class','country-rect');
+
+	nodes.merge(nodesEnter)
+		.filter(function(d){
+			return d.properties[INDICATOR_INFANT_DEATH] > 0;
+		})
+		.each(function(d){
+
+			const rectSize = scaleSize(d.properties[INDICATOR_INFANT_DEATH]);
+			const xy = path.centroid(d);
+
+			d3.select(this)
+				.attr('x', xy[0] - rectSize/2)
+				.attr('y', xy[1] - rectSize/2)
+				.attr('width', rectSize)
+				.attr('height', rectSize);
+
+		})
+		.style('fill-opacity', .1)
+		.style('stroke', '#333')
+		.style('stroke-width', '1.5px');
+
+}
+
 
 function parseData(d){
 
