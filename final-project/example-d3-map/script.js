@@ -76,6 +76,9 @@ Promise.all([dataPromise, metadataPromise, geojsonPromise])
 					.attr('transform', `translate(${(w/4 + 5)*i}, 0)`)
 				drawTreemapChart(d, this);
 			})
+			.on('click', function(d){
+				console.log(d);
+			})
 
 
 
